@@ -11,6 +11,9 @@ print("CIFAR-10 dataset loaded.")
 # 2. Preprocess the data
 print("Preprocessing the data...")
 
+# Normalize the pixel values to the range [0, 1]
+X_train = X_train / 255.0  # Normalize pixel values to range [0, 1]
+
 # Use the entire CIFAR-10 dataset (50,000 images)
 X_train = X_train.reshape((X_train.shape[0], -1)).astype(np.float64)  # Flatten each image to a 1D vector (3072 features)
 
@@ -21,8 +24,8 @@ X_centered = X_train - mean  # Subtract the mean from each image to center the d
 
 print("Data preprocessing complete.")
 
-# 3. Set up the range of k values to test (k from 1 to 50)
-k_values = range(1, 101)  # Test k values from 1 to 50 components
+# 3. Set up the range of k values to test (k from 1 to 100)
+k_values = range(1, 101)  # Test k values from 1 to 100 components
 
 # 4. Initialize a list to store reconstruction errors for each k
 errors = []  # List to store the reconstruction error for each k
@@ -39,14 +42,16 @@ for i, k in enumerate(k_values):
     # Reconstruct the data from the reduced representation (this is how we get back the original data from reduced form)
     X_reconstructed = ipca.inverse_transform(X_reduced)  # Inverse transform to get the data back to original space
     
-    # Compute the reconstruction error (Mean Squared Error)
-    reconstruction_error = np.mean((X_centered - X_reconstructed) ** 2)  # MSE between original and reconstructed data
+    # Compute the reconstruction error (Mean Squared Error per sample)
+    squared_error = (X_centered - X_reconstructed) ** 2  # Squared differences for each sample
+    mse_per_sample = np.mean(squared_error, axis=1)  # MSE per sample
     
-    # Append the reconstruction error for this value of k to the list of errors
-    errors.append(reconstruction_error)
+    # Append the mean MSE for this value of k to the list of errors
+    mean_mse = np.mean(mse_per_sample)  # The mean MSE across all samples
+    errors.append(mean_mse)
     
     # Print the error for the current k
-    print(f"k = {k}, Reconstruction Error (MSE) = {reconstruction_error:.6f}")
+    print(f"k = {k}, Mean Reconstruction Error (MSE per sample) = {mean_mse:.6f}")
 
 print("Incremental PCA computations complete.")
 
@@ -54,7 +59,7 @@ print("Incremental PCA computations complete.")
 print("Plotting the reconstruction error vs. number of components...")
 plt.plot(k_values, errors, marker='o', markersize=3)  # Reduce the dot size (markersize=3)
 plt.xlabel('Number of Components (k)')  # Label for the x-axis
-plt.ylabel('Reconstruction Error (MSE)')  # Label for the y-axis
+plt.ylabel('Mean Reconstruction Error (MSE per sample)')  # Label for the y-axis
 plt.title('Reconstruction Error vs Number of Components (k)')  # Title for the plot
 plt.grid(True)  # Show gridlines on the plot to make it easier to read
 plt.show()  # Display the plot
